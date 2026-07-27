@@ -90,7 +90,7 @@ function formatMetadata(metadata, style) {
 }
 
 function filterCitation(baseCitation, resolved, visibleElements) {
-  let citation = baseCitation;
+  let citation = removeLeadingCitationNumber(baseCitation);
 
   if (!visibleElements.title && resolved.title) {
     citation = removeCitationTitle(citation, resolved.title);
@@ -100,6 +100,13 @@ function filterCitation(baseCitation, resolved, visibleElements) {
   }
 
   return tidyCitation(citation);
+}
+
+function removeLeadingCitationNumber(citation) {
+  return citation.replace(
+    /^\s*(?:\(\s*\d+\s*\)|\[\s*\d+\s*\]|\d+\s*[.)])\s*/,
+    "",
+  );
 }
 
 function formatCitationDisplay(citation, resolved, style) {
