@@ -272,8 +272,14 @@ function tidyCitation(citation) {
       /\s*(?:Available (?:at|from)|Retrieved from):\s*$/i,
       "",
     )
-    .replace(/\.\s+Edited by\s*,\s*(?=\d)/gi, ", ")
-    .replace(/\s+Edited by\s*,\s*(?=\d)/gi, " ")
+    .replace(
+      /\.\s+Edited by\s*,\s*(?=(?:(?:pp?|vol)\.?\s+|\d|$))/gi,
+      ", ",
+    )
+    .replace(
+      /\s+Edited by\s*,\s*(?=(?:(?:pp?|vol)\.?\s+|\d|$))/gi,
+      " ",
+    )
     .replace(/\s+([,;:.])/g, "$1")
     .replace(/([.])\s*\1+/g, "$1")
     .replace(/\s{2,}/g, " ")
