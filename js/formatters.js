@@ -254,7 +254,7 @@ function removeCitationDoi(citation, doi) {
   return citation
     .replace(
       new RegExp(
-        `\\s*(?:https?://(?:dx\\.)?doi\\.org/|doi:\\s*)${escapedDoi}[.]?`,
+        `\\s*(?:(?:Available (?:at|from)|Retrieved from):\\s*)?(?:https?://(?:dx\\.)?doi\\.org/|doi:\\s*)${escapedDoi}[.]?`,
         "giu",
       ),
       "",
@@ -264,6 +264,12 @@ function removeCitationDoi(citation, doi) {
 
 function tidyCitation(citation) {
   return citation
+    .replace(
+      /\s*(?:Available (?:at|from)|Retrieved from):\s*$/i,
+      "",
+    )
+    .replace(/\.\s+Edited by\s*,\s*(?=\d)/gi, ", ")
+    .replace(/\s+Edited by\s*,\s*(?=\d)/gi, " ")
     .replace(/\s+([,;:.])/g, "$1")
     .replace(/([.])\s*\1+/g, "$1")
     .replace(/\s{2,}/g, " ")
