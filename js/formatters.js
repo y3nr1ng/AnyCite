@@ -110,7 +110,11 @@ function removeLeadingCitationNumber(citation) {
 }
 
 function formatCitationDisplay(citation, resolved, style) {
-  const text = tidyCitation(citation);
+  const text = applyJournalAbbreviation(
+    tidyCitation(citation),
+    resolved.metadata,
+    style,
+  );
   if (
     style !== "american-chemical-society" ||
     !resolved.metadata
@@ -319,7 +323,11 @@ function formatAcsHtml(citation, metadata) {
   if (journalTypes.has(type)) {
     const container = findLastRange(
       citation,
-      [metadata.containerTitleShort, metadata.containerTitle],
+      [
+        metadata.journalAbbreviation,
+        metadata.containerTitleShort,
+        metadata.containerTitle,
+      ],
     );
     if (container) ranges.push({ ...container, tag: "em" });
 
@@ -357,6 +365,30 @@ function formatAcsHtml(citation, metadata) {
   }
 
   return rangesToHtml(citation, ranges);
+}
+
+function applyJournalAbbreviation(citation, metadata, style) {
+  if (
+    !metadata?.containerTitle ||
+    !metadata.journalAbbreviation ||
+    ![
+      "american-chemical-society",
+      "elsevier-vancouver",
+    ].includes(style)
+  ) {
+    return citation;
+  }
+
+  const fullTitle = findLastRange(citation, [
+    metadata.containerTitle,
+  ]);
+  if (!fullTitle) return citation;
+
+  return [
+    citation.slice(0, fullTitle.start),
+    metadata.journalAbbreviation,
+    citation.slice(fullTitle.end),
+  ].join("");
 }
 
 function addEmphasisRange(ranges, citation, candidates) {

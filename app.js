@@ -18,6 +18,7 @@ const {
   findCrossrefBook,
   findCrossrefByCitation,
   findCrossrefByTitle,
+  resolveJournalAbbreviation,
 } = window.CiteApp.services;
 const { ui } = window.CiteApp;
 const {
@@ -115,19 +116,25 @@ class CitationApp {
   async resolveDoi(doi, detectedAs, originalUrl = "") {
     ui.setSourceMeta(detectedAs);
     const controller = this.beginRequest("Looking up DOI metadata…");
+    const style = ui.styleValue();
 
     try {
       const [citation, metadata] = await Promise.all([
-        fetchDoiCitation(doi, ui.styleValue(), controller.signal),
+        fetchDoiCitation(doi, style, controller.signal),
         fetchDoiMetadata(doi, controller.signal).catch(() => null),
       ]);
+      const enrichedMetadata = await this.enrichJournalMetadata(
+        metadata,
+        style,
+        controller.signal,
+      );
       if (!this.isCurrent(controller)) return;
 
       this.finishCitation(citation, {
         kind: "doi",
         doi,
-        metadata,
-        title: metadata?.title || "",
+        metadata: enrichedMetadata,
+        title: enrichedMetadata?.title || "",
         url: originalUrl || doiUrl(doi),
         label: `${detectedAs} · ${ui.styleLabel()}`,
       });
@@ -143,23 +150,32 @@ class CitationApp {
     try {
       const crossrefItem = await findCrossrefBook(isbn, controller.signal);
       if (crossrefItem?.DOI) {
+        const style = ui.styleValue();
         const [citation, metadata] = await Promise.all([
           fetchDoiCitation(
             crossrefItem.DOI,
-            ui.styleValue(),
+            style,
             controller.signal,
           ),
           fetchDoiMetadata(crossrefItem.DOI, controller.signal).catch(
             () => null,
           ),
         ]);
+        const enrichedMetadata = await this.enrichJournalMetadata(
+          metadata,
+          style,
+          controller.signal,
+        );
         if (!this.isCurrent(controller)) return;
 
         this.finishCitation(citation, {
           kind: "doi",
           doi: crossrefItem.DOI,
-          metadata,
-          title: metadata?.title || crossrefItem.title?.[0] || "",
+          metadata: enrichedMetadata,
+          title:
+            enrichedMetadata?.title ||
+            crossrefItem.title?.[0] ||
+            "",
           url: doiUrl(crossrefItem.DOI),
           label: `ISBN · Crossref book · ${ui.styleLabel()}`,
         });
@@ -194,24 +210,30 @@ class CitationApp {
       );
 
       if (crossrefItem?.DOI) {
+        const style = ui.styleValue();
         const [citation, doiMetadata] = await Promise.all([
           fetchDoiCitation(
             crossrefItem.DOI,
-            ui.styleValue(),
+            style,
             controller.signal,
           ),
           fetchDoiMetadata(crossrefItem.DOI, controller.signal).catch(
             () => null,
           ),
         ]);
+        const enrichedMetadata = await this.enrichJournalMetadata(
+          doiMetadata,
+          style,
+          controller.signal,
+        );
         if (!this.isCurrent(controller)) return;
 
         this.finishCitation(citation, {
           kind: "doi",
           doi: crossrefItem.DOI,
-          metadata: doiMetadata,
+          metadata: enrichedMetadata,
           title:
-            doiMetadata?.title ||
+            enrichedMetadata?.title ||
             crossrefItem.title?.[0] ||
             metadata.title,
           url,
@@ -238,17 +260,23 @@ class CitationApp {
 
     try {
       const item = await findCrossrefByCitation(citation, controller.signal);
+      const style = ui.styleValue();
       const [formatted, metadata] = await Promise.all([
-        fetchDoiCitation(item.DOI, ui.styleValue(), controller.signal),
+        fetchDoiCitation(item.DOI, style, controller.signal),
         fetchDoiMetadata(item.DOI, controller.signal).catch(() => null),
       ]);
+      const enrichedMetadata = await this.enrichJournalMetadata(
+        metadata,
+        style,
+        controller.signal,
+      );
       if (!this.isCurrent(controller)) return;
 
       this.finishCitation(formatted, {
         kind: "doi",
         doi: item.DOI,
-        metadata,
-        title: metadata?.title || item.title?.[0] || "",
+        metadata: enrichedMetadata,
+        title: enrichedMetadata?.title || item.title?.[0] || "",
         url: doiUrl(item.DOI),
         label: `Reformatted citation · ${ui.styleLabel()}`,
       });
@@ -281,14 +309,19 @@ class CitationApp {
       `Reformatting as ${ui.styleLabel()}…`,
     );
     try {
-      const citation = await fetchDoiCitation(
-        resolved.doi,
-        ui.styleValue(),
-        controller.signal,
-      );
+      const style = ui.styleValue();
+      const [citation, metadata] = await Promise.all([
+        fetchDoiCitation(resolved.doi, style, controller.signal),
+        this.enrichJournalMetadata(
+          resolved.metadata,
+          style,
+          controller.signal,
+        ),
+      ]);
       if (!this.isCurrent(controller)) return;
       this.finishCitation(citation, {
         ...resolved,
+        metadata,
         label: replaceStyleLabel(resolved.label, ui.styleLabel()),
       });
     } catch (error) {
@@ -356,6 +389,22 @@ class CitationApp {
       this.activeController === controller &&
       controller.requestId === this.requestId
     );
+  }
+
+  async enrichJournalMetadata(metadata, style, signal) {
+    if (!metadata) return null;
+
+    try {
+      const journalAbbreviation = await resolveJournalAbbreviation(
+        metadata,
+        style,
+        signal,
+      );
+      return { ...metadata, journalAbbreviation };
+    } catch (error) {
+      if (error.name === "AbortError") throw error;
+      return metadata;
+    }
   }
 
   handleFailure(error, controller) {

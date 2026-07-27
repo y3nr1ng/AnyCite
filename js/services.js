@@ -10,6 +10,9 @@ const {
   titleSimilarity,
 } = window.CiteApp.utils;
 
+const journalAbbreviationCache = new Map();
+const crossrefJournalCache = new Map();
+
 async function fetchDoiCitation(doi, style, signal) {
   const response = await fetch(doiUrl(doi), {
     signal,
@@ -51,6 +54,10 @@ async function fetchDoiMetadata(doi, signal) {
     containerTitleShort: stripMarkup(
       metadata["container-title-short"] || "",
     ),
+    issn: (Array.isArray(metadata.ISSN)
+      ? metadata.ISSN
+      : [metadata.ISSN]
+    ).filter(Boolean),
     volume: String(metadata.volume || ""),
     issue: String(metadata.issue || ""),
     pages: String(metadata.page || ""),
@@ -60,6 +67,37 @@ async function fetchDoiMetadata(doi, signal) {
     doi: metadata.DOI || doi,
     url: metadata.URL || doiUrl(doi),
   };
+}
+
+async function resolveJournalAbbreviation(metadata, style, signal) {
+  if (
+    !metadata?.containerTitle ||
+    ![
+      "american-chemical-society",
+      "elsevier-vancouver",
+    ].includes(style)
+  ) {
+    return "";
+  }
+
+  const deposited =
+    metadata.containerTitleShort ||
+    (await findCrossrefJournalAbbreviation(
+      metadata.doi,
+      signal,
+    ));
+  if (style === "american-chemical-society" && deposited) {
+    return deposited;
+  }
+
+  const nlm = await findNlmJournalAbbreviation(
+    metadata.issn || [],
+    signal,
+  );
+  if (style === "elsevier-vancouver") {
+    return stripAbbreviationPeriods(nlm || deposited);
+  }
+  return deposited || nlm;
 }
 
 async function findCrossrefBook(isbn, signal) {
@@ -193,6 +231,92 @@ async function fetchCrossrefItems(params, signal, strict = false) {
   return data.message?.items || [];
 }
 
+async function findNlmJournalAbbreviation(issns, signal) {
+  for (const issn of issns) {
+    if (journalAbbreviationCache.has(issn)) {
+      const cached = journalAbbreviationCache.get(issn);
+      if (cached) return cached;
+      continue;
+    }
+
+    try {
+      const searchParams = new URLSearchParams({
+        db: "nlmcatalog",
+        term: `${issn}[issn]`,
+        retmode: "json",
+        retmax: "1",
+        tool: "AnyCite",
+      });
+      const searchResponse = await fetch(
+        `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?${searchParams}`,
+        { signal, headers: { Accept: "application/json" } },
+      );
+      if (!searchResponse.ok) continue;
+
+      const search = await searchResponse.json();
+      const id = search.esearchresult?.idlist?.[0];
+      if (!id) {
+        journalAbbreviationCache.set(issn, "");
+        continue;
+      }
+
+      const summaryParams = new URLSearchParams({
+        db: "nlmcatalog",
+        id,
+        retmode: "json",
+        tool: "AnyCite",
+      });
+      const summaryResponse = await fetch(
+        `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?${summaryParams}`,
+        { signal, headers: { Accept: "application/json" } },
+      );
+      if (!summaryResponse.ok) continue;
+
+      const summary = await summaryResponse.json();
+      const record = summary.result?.[id];
+      const abbreviation =
+        record?.isoabbreviation || record?.medlineta || "";
+      journalAbbreviationCache.set(issn, abbreviation);
+      if (abbreviation) return abbreviation;
+    } catch (error) {
+      if (error.name === "AbortError") throw error;
+    }
+  }
+
+  return "";
+}
+
+async function findCrossrefJournalAbbreviation(doi, signal) {
+  if (!doi) return "";
+  if (crossrefJournalCache.has(doi)) {
+    return crossrefJournalCache.get(doi);
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.crossref.org/works/${encodeURIComponent(doi)}`,
+      { signal, headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) return "";
+
+    const payload = await response.json();
+    const abbreviation =
+      payload.message?.["short-container-title"]?.[0] || "";
+    crossrefJournalCache.set(doi, abbreviation);
+    return abbreviation;
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    return "";
+  }
+}
+
+function stripAbbreviationPeriods(value) {
+  return String(value)
+    .replace(/\.(?=\s|$)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 window.CiteApp.services = {
   fetchDoiCitation,
   fetchDoiMetadata,
@@ -202,5 +326,6 @@ window.CiteApp.services = {
   findCrossrefByTitle,
   findCrossrefByCitation,
   fetchDoiExport,
+  resolveJournalAbbreviation,
 };
 })();
