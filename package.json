@@ -1,0 +1,13 @@
+{
+  "name": "any-cite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn DOI, ISBN, publisher URLs, and existing references into citations.",
+  "scripts": {
+    "start": "serve .",
+    "check": "node --check app.js && node --check js/config.js && node --check js/formatters.js && node --check js/services.js && node --check js/ui.js && node --check js/utils.js"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

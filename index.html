@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Turn a DOI, ISBN, publisher URL, or existing reference into a formatted citation."
+    />
+    <title>Any | Cite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <main class="converter" aria-label="Anything to citation converter">
+        <section class="convert-panel source-panel" data-panel="source">
+          <div class="panel-head">
+            <div class="source-title">
+              <h1 id="source-heading" class="source-heading">Any</h1>
+            </div>
+          </div>
+
+          <div class="editor">
+            <label class="visually-hidden" for="source-input">Source</label>
+            <textarea
+              id="source-input"
+              rows="7"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Paste a DOI, ISBN, publisher URL, or an existing citation…"
+            ></textarea>
+          </div>
+
+          <div class="panel-state" id="source-state" aria-live="polite" hidden>
+            <div class="search-animation" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <p>Identifying your source…</p>
+          </div>
+
+          <span id="source-meta" class="visually-hidden" aria-live="polite"></span>
+        </section>
+
+        <section class="convert-panel citation-panel" data-panel="citation">
+          <div class="panel-head">
+            <div>
+              <h1>Citation</h1>
+            </div>
+          </div>
+
+          <div class="editor">
+            <label class="visually-hidden" for="citation-input">Citation</label>
+            <textarea
+              id="citation-input"
+              rows="7"
+              readonly
+              aria-label="Citation result. Click to copy."
+              title="Click the citation to copy"
+              placeholder="Your formatted citation will appear here."
+            ></textarea>
+          </div>
+
+          <div class="panel-state" id="citation-state" aria-live="polite" hidden>
+            <div class="search-animation" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <p>Generating your citation…</p>
+          </div>
+
+          <div class="panel-foot citation-foot">
+            <span id="result-meta" class="visually-hidden" aria-live="polite"></span>
+            <div class="footer-columns">
+              <div class="settings-column">
+                <div class="style-control">
+                  <label for="style-select">Style</label>
+                  <select id="style-select">
+                    <option value="apa">APA 7th</option>
+                    <option value="modern-language-association">MLA 9th</option>
+                    <option value="chicago-author-date">Chicago</option>
+                    <option value="harvard-cite-them-right">Harvard</option>
+                    <option value="elsevier-vancouver">Vancouver</option>
+                    <option value="american-chemical-society">ACS</option>
+                  </select>
+                </div>
+                <div class="elements-control">
+                  <span>Elements</span>
+                  <div class="element-buttons">
+                    <button
+                      class="element-button active"
+                      data-element="title"
+                      type="button"
+                      aria-pressed="true"
+                      disabled
+                    >
+                      Title
+                    </button>
+                    <button
+                      class="element-button"
+                      data-element="doi"
+                      type="button"
+                      aria-pressed="false"
+                      disabled
+                    >
+                      DOI
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="download-control">
+                <span>Download as</span>
+                <button class="format-button" data-format="bib" type="button" disabled>
+                  BIB
+                </button>
+                <button class="format-button" data-format="ris" type="button" disabled>
+                  RIS
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div id="copy-toast" class="copy-toast" role="status" aria-live="polite">
+      Copied
+    </div>
+
+    <script defer src="./js/config.js"></script>
+    <script defer src="./js/utils.js"></script>
+    <script defer src="./js/services.js"></script>
+    <script defer src="./js/formatters.js"></script>
+    <script defer src="./js/ui.js"></script>
+    <script defer src="./app.js"></script>
+  </body>
+</html>
