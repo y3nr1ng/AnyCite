@@ -3,6 +3,7 @@ const { DEBOUNCE_MS } = window.CiteApp.config;
 const {
   exportFileName,
   filterCitation,
+  formatCitationDisplay,
   formatMetadata,
   metadataToBibTeX,
   metadataToRis,
@@ -116,19 +117,16 @@ class CitationApp {
     const controller = this.beginRequest("Looking up DOI metadata…");
 
     try {
-      const citation = await fetchDoiCitation(
-        doi,
-        ui.styleValue(),
-        controller.signal,
-      );
-      const metadata = await fetchDoiMetadata(doi, controller.signal).catch(
-        () => null,
-      );
+      const [citation, metadata] = await Promise.all([
+        fetchDoiCitation(doi, ui.styleValue(), controller.signal),
+        fetchDoiMetadata(doi, controller.signal).catch(() => null),
+      ]);
       if (!this.isCurrent(controller)) return;
 
       this.finishCitation(citation, {
         kind: "doi",
         doi,
+        metadata,
         title: metadata?.title || "",
         url: originalUrl || doiUrl(doi),
         label: `${detectedAs} · ${ui.styleLabel()}`,
@@ -145,17 +143,23 @@ class CitationApp {
     try {
       const crossrefItem = await findCrossrefBook(isbn, controller.signal);
       if (crossrefItem?.DOI) {
-        const citation = await fetchDoiCitation(
-          crossrefItem.DOI,
-          ui.styleValue(),
-          controller.signal,
-        );
+        const [citation, metadata] = await Promise.all([
+          fetchDoiCitation(
+            crossrefItem.DOI,
+            ui.styleValue(),
+            controller.signal,
+          ),
+          fetchDoiMetadata(crossrefItem.DOI, controller.signal).catch(
+            () => null,
+          ),
+        ]);
         if (!this.isCurrent(controller)) return;
 
         this.finishCitation(citation, {
           kind: "doi",
           doi: crossrefItem.DOI,
-          title: crossrefItem.title?.[0] || "",
+          metadata,
+          title: metadata?.title || crossrefItem.title?.[0] || "",
           url: doiUrl(crossrefItem.DOI),
           label: `ISBN · Crossref book · ${ui.styleLabel()}`,
         });
@@ -190,17 +194,26 @@ class CitationApp {
       );
 
       if (crossrefItem?.DOI) {
-        const citation = await fetchDoiCitation(
-          crossrefItem.DOI,
-          ui.styleValue(),
-          controller.signal,
-        );
+        const [citation, doiMetadata] = await Promise.all([
+          fetchDoiCitation(
+            crossrefItem.DOI,
+            ui.styleValue(),
+            controller.signal,
+          ),
+          fetchDoiMetadata(crossrefItem.DOI, controller.signal).catch(
+            () => null,
+          ),
+        ]);
         if (!this.isCurrent(controller)) return;
 
         this.finishCitation(citation, {
           kind: "doi",
           doi: crossrefItem.DOI,
-          title: crossrefItem.title?.[0] || metadata.title,
+          metadata: doiMetadata,
+          title:
+            doiMetadata?.title ||
+            crossrefItem.title?.[0] ||
+            metadata.title,
           url,
           label: `Publisher page · Crossref match · ${ui.styleLabel()}`,
         });
@@ -225,17 +238,17 @@ class CitationApp {
 
     try {
       const item = await findCrossrefByCitation(citation, controller.signal);
-      const formatted = await fetchDoiCitation(
-        item.DOI,
-        ui.styleValue(),
-        controller.signal,
-      );
+      const [formatted, metadata] = await Promise.all([
+        fetchDoiCitation(item.DOI, ui.styleValue(), controller.signal),
+        fetchDoiMetadata(item.DOI, controller.signal).catch(() => null),
+      ]);
       if (!this.isCurrent(controller)) return;
 
       this.finishCitation(formatted, {
         kind: "doi",
         doi: item.DOI,
-        title: item.title?.[0] || "",
+        metadata,
+        title: metadata?.title || item.title?.[0] || "",
         url: doiUrl(item.DOI),
         label: `Reformatted citation · ${ui.styleLabel()}`,
       });
@@ -295,11 +308,16 @@ class CitationApp {
       return;
     }
 
+    const citation = filterCitation(
+      this.lastResolved.baseCitation,
+      this.lastResolved,
+      this.visibleElements,
+    );
     ui.renderCitation(
-      filterCitation(
-        this.lastResolved.baseCitation,
+      formatCitationDisplay(
+        citation,
         this.lastResolved,
-        this.visibleElements,
+        ui.styleValue(),
       ),
     );
   }

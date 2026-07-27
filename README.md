@@ -33,6 +33,11 @@ build step.
 - Publisher URLs with embedded DOIs use the DOI directly. Other URLs use
   Microlink to read page metadata, then match the title in Crossref.
 - No API key or server-side component is required.
+- ACS display formatting follows the
+  [MyBib ACS citation generator](https://www.mybib.com/tools/acs-citation-generator)
+  and the ACS CSL rules: journal titles and volumes are italicized, while
+  publication years are bold. Rich formatting is preserved when supported by
+  the copy destination.
 
 Title and citation matching is probabilistic. Publisher-page metadata lookup
 also depends on Microlink's public free tier. Always verify a generated citation

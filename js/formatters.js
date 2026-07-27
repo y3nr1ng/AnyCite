@@ -102,6 +102,21 @@ function filterCitation(baseCitation, resolved, visibleElements) {
   return tidyCitation(citation);
 }
 
+function formatCitationDisplay(citation, resolved, style) {
+  const text = tidyCitation(citation);
+  if (
+    style !== "american-chemical-society" ||
+    !resolved.metadata
+  ) {
+    return { text, html: escapeHtml(text) };
+  }
+
+  return {
+    text,
+    html: formatAcsHtml(text, resolved.metadata),
+  };
+}
+
 function metadataToBibTeX(metadata) {
   const type = metadata.type === "book" ? "book" : "misc";
   const firstAuthor = metadata.authors?.[0]
@@ -263,9 +278,161 @@ function escapeBibTeX(value) {
     .replace(/\}/g, "\\}");
 }
 
+function formatAcsHtml(citation, metadata) {
+  const type = metadata.type === "web" ? "webpage" : metadata.type;
+  const ranges = [];
+  const journalTypes = new Set([
+    "article-journal",
+    "journal-article",
+    "review",
+  ]);
+  const bookTypes = new Set([
+    "bill",
+    "book",
+    "graphic",
+    "legal_case",
+    "legislation",
+    "motion_picture",
+    "report",
+    "song",
+  ]);
+  const chapterTypes = new Set([
+    "chapter",
+    "paper-conference",
+    "entry-dictionary",
+    "entry-encyclopedia",
+  ]);
+
+  if (journalTypes.has(type)) {
+    const container = findLastRange(
+      citation,
+      [metadata.containerTitleShort, metadata.containerTitle],
+    );
+    if (container) ranges.push({ ...container, tag: "em" });
+
+    const year = findFirstRange(
+      citation,
+      [metadata.year],
+      container?.end || 0,
+    );
+    if (year) ranges.push({ ...year, tag: "strong" });
+
+    const volume = findFirstRange(
+      citation,
+      [metadata.volume],
+      year?.end || container?.end || 0,
+    );
+    if (volume) ranges.push({ ...volume, tag: "em" });
+  } else if (bookTypes.has(type)) {
+    addEmphasisRange(ranges, citation, [
+      metadata.title,
+    ]);
+  } else if (chapterTypes.has(type)) {
+    addEmphasisRange(ranges, citation, [
+      metadata.containerTitle,
+      metadata.containerTitleShort,
+    ]);
+  } else if (type === "webpage" || type === "post" || type === "post-weblog") {
+    addEmphasisRange(ranges, citation, [metadata.title]);
+  } else {
+    addEmphasisRange(ranges, citation, [
+      metadata.containerTitle,
+      metadata.containerTitleShort,
+    ]);
+    const volume = findLastRange(citation, [metadata.volume]);
+    if (volume) ranges.push({ ...volume, tag: "em" });
+  }
+
+  return rangesToHtml(citation, ranges);
+}
+
+function addEmphasisRange(ranges, citation, candidates) {
+  const range = findLastRange(citation, candidates);
+  if (range) ranges.push({ ...range, tag: "em" });
+}
+
+function findFirstRange(citation, candidates, from = 0) {
+  const lowerCitation = citation.toLocaleLowerCase();
+  let selected = null;
+
+  uniqueTerms(candidates).forEach((candidate) => {
+    const start = lowerCitation.indexOf(
+      candidate.toLocaleLowerCase(),
+      from,
+    );
+    if (start < 0) return;
+    if (!selected || start < selected.start) {
+      selected = { start, end: start + candidate.length };
+    }
+  });
+  return selected;
+}
+
+function findLastRange(citation, candidates, before = citation.length) {
+  const lowerCitation = citation.toLocaleLowerCase();
+  let selected = null;
+
+  uniqueTerms(candidates).forEach((candidate) => {
+    const start = lowerCitation.lastIndexOf(
+      candidate.toLocaleLowerCase(),
+      Math.max(0, before - candidate.length),
+    );
+    if (start < 0) return;
+    if (!selected || start > selected.start) {
+      selected = { start, end: start + candidate.length };
+    }
+  });
+  return selected;
+}
+
+function uniqueTerms(candidates) {
+  return [...new Set(candidates.filter(Boolean).map(String))].sort(
+    (first, second) => second.length - first.length,
+  );
+}
+
+function rangesToHtml(citation, ranges) {
+  const sorted = ranges
+    .filter(
+      (range, index, all) =>
+        range.start < range.end &&
+        !all.some(
+          (other, otherIndex) =>
+            otherIndex !== index &&
+            other.start <= range.start &&
+            other.end >= range.end &&
+            other.end - other.start > range.end - range.start,
+        ),
+    )
+    .sort((first, second) => first.start - second.start);
+  let cursor = 0;
+  let html = "";
+
+  sorted.forEach((range) => {
+    if (range.start < cursor) return;
+    html += escapeHtml(citation.slice(cursor, range.start));
+    html += `<${range.tag}>${escapeHtml(
+      citation.slice(range.start, range.end),
+    )}</${range.tag}>`;
+    cursor = range.end;
+  });
+
+  return html + escapeHtml(citation.slice(cursor));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 window.CiteApp.formatters = {
   formatMetadata,
   filterCitation,
+  formatCitationDisplay,
   metadataToBibTeX,
   metadataToRis,
   exportFileName,
