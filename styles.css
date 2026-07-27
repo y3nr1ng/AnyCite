@@ -297,7 +297,8 @@ h1 {
   text-transform: uppercase;
 }
 
-textarea {
+textarea,
+.citation-output {
   width: 100%;
   min-height: 0;
   flex: 1;
@@ -311,6 +312,10 @@ textarea {
   scrollbar-color: var(--line) transparent;
 }
 
+textarea {
+  resize: none;
+}
+
 .source-panel textarea {
   font-family: var(--sans);
   font-size: clamp(1.05rem, 1.6vw, 1.4rem);
@@ -318,10 +323,12 @@ textarea {
   overflow-wrap: anywhere;
 }
 
-.citation-panel textarea {
+.citation-output {
   font-family: var(--font);
   font-size: clamp(1.15rem, 2vw, 1.75rem);
   line-height: 1.55;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 
 textarea::placeholder {
@@ -329,11 +336,29 @@ textarea::placeholder {
   opacity: 1;
 }
 
-.citation-panel textarea:not(:placeholder-shown) {
+.citation-output:empty::before {
+  color: #a9ada9;
+  content: attr(data-placeholder);
+}
+
+.citation-output:not(:empty) {
   cursor: copy;
 }
 
-.citation-panel.copied-result textarea {
+.citation-output:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.citation-output strong {
+  font-weight: 700;
+}
+
+.citation-output em {
+  font-style: italic;
+}
+
+.citation-panel.copied-result .citation-output {
   color: var(--accent-dark);
 }
 
@@ -604,11 +629,13 @@ select {
   animation-delay: 220ms;
 }
 
-.convert-panel.searching textarea {
+.convert-panel.searching textarea,
+.convert-panel.searching .citation-output {
   opacity: 0;
 }
 
-.convert-panel.fresh textarea {
+.convert-panel.fresh textarea,
+.convert-panel.fresh .citation-output {
   animation: result-in 320ms ease both;
 }
 
@@ -695,7 +722,7 @@ footer span:last-child {
   }
 
   .source-panel textarea,
-  .citation-panel textarea {
+  .citation-output {
     font-size: 1rem;
   }
 

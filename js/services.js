@@ -36,8 +36,29 @@ async function fetchDoiMetadata(doi, signal) {
 
   if (!response.ok) throw new Error("SERVICE_ERROR");
   const metadata = await response.json();
+  const issued = metadata.issued?.["date-parts"]?.[0] || [];
   return {
+    type: metadata.type || "",
     title: stripMarkup(metadata.title || ""),
+    authors: (metadata.author || [])
+      .map((author) =>
+        author.literal ||
+        [author.given, author.family].filter(Boolean).join(" "),
+      )
+      .filter(Boolean),
+    year: issued[0] ? String(issued[0]) : "",
+    containerTitle: stripMarkup(metadata["container-title"] || ""),
+    containerTitleShort: stripMarkup(
+      metadata["container-title-short"] || "",
+    ),
+    volume: String(metadata.volume || ""),
+    issue: String(metadata.issue || ""),
+    pages: String(metadata.page || ""),
+    publisher: stripMarkup(metadata.publisher || ""),
+    publisherPlace: stripMarkup(metadata["publisher-place"] || ""),
+    edition: String(metadata.edition || ""),
+    doi: metadata.DOI || doi,
+    url: metadata.URL || doiUrl(doi),
   };
 }
 

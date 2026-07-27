@@ -21,6 +21,11 @@ const ui = {
     elements.sourceInput.addEventListener("focus", selectSourceInput);
     elements.sourceInput.addEventListener("click", selectSourceInput);
     elements.citationInput.addEventListener("click", copyCitationResult);
+    elements.citationInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      copyCitationResult();
+    });
     elements.styleSelect.addEventListener("change", onStyleChange);
 
     elements.downloadButtons.forEach((button) => {
@@ -48,11 +53,13 @@ const ui = {
   },
 
   clearCitation() {
-    elements.citationInput.value = "";
+    elements.citationInput.replaceChildren();
+    delete elements.citationInput.dataset.plainText;
   },
 
-  renderCitation(citation) {
-    elements.citationInput.value = citation;
+  renderCitation({ text, html }) {
+    elements.citationInput.innerHTML = html;
+    elements.citationInput.dataset.plainText = text;
   },
 
   setSourceMeta(message) {
@@ -147,18 +154,36 @@ function selectSourceInput() {
 }
 
 async function copyCitationResult() {
-  const citation = elements.citationInput.value.trim();
+  const citation = (
+    elements.citationInput.dataset.plainText ||
+    elements.citationInput.textContent
+  ).trim();
   if (!citation) return;
 
   try {
-    await navigator.clipboard.writeText(citation);
+    if (!navigator.clipboard?.write || !window.ClipboardItem) {
+      throw new Error("RICH_CLIPBOARD_UNAVAILABLE");
+    }
+
+    const html = `<div>${elements.citationInput.innerHTML}</div>`;
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "text/plain": new Blob([citation], {
+          type: "text/plain",
+        }),
+        "text/html": new Blob([html], {
+          type: "text/html",
+        }),
+      }),
+    ]);
   } catch {
-    elements.citationInput.select();
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(elements.citationInput);
+    selection.removeAllRanges();
+    selection.addRange(range);
     document.execCommand("copy");
-    elements.citationInput.setSelectionRange(
-      elements.citationInput.value.length,
-      elements.citationInput.value.length,
-    );
+    selection.removeAllRanges();
   }
 
   elements.citationPanel.classList.add("copied-result");

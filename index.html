@@ -55,15 +55,18 @@
           </div>
 
           <div class="editor">
-            <label class="visually-hidden" for="citation-input">Citation</label>
-            <textarea
+            <span id="citation-label" class="visually-hidden">Citation</span>
+            <div
               id="citation-input"
-              rows="7"
-              readonly
+              class="citation-output"
+              role="textbox"
+              tabindex="0"
+              aria-readonly="true"
+              aria-labelledby="citation-label"
               aria-label="Citation result. Click to copy."
               title="Click the citation to copy"
-              placeholder="Your formatted citation will appear here."
-            ></textarea>
+              data-placeholder="Your formatted citation will appear here."
+            ></div>
           </div>
 
           <div class="panel-state" id="citation-state" aria-live="polite" hidden>
