@@ -38,6 +38,10 @@ build step.
   and the ACS CSL rules: journal titles and volumes are italicized, while
   publication years are bold. Rich formatting is preserved when supported by
   the copy destination.
+- ACS and Vancouver journal abbreviations use publisher/Crossref short-title
+  metadata first. Vancouver and missing-short-title cases use the
+  [NLM Catalog](https://www.ncbi.nlm.nih.gov/nlmcatalog) by ISSN as a cached
+  fallback. Harvard and other full-title styles are left unchanged.
 
 Title and citation matching is probabilistic. Publisher-page metadata lookup
 also depends on Microlink's public free tier. Always verify a generated citation
