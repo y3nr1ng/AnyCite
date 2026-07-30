@@ -1,7 +1,7 @@
 # Any | Cite
 
-A single-screen, browser-based tool that turns a DOI, ISBN, publisher URL, or
-existing citation into a formatted citation.
+A single-screen, browser-based tool that turns a DOI, ISBN, arXiv identifier,
+publisher URL, or existing citation into a formatted citation.
 
 ## Run locally
 
@@ -19,6 +19,8 @@ build step.
 ## Project structure
 
 - `app.js` coordinates input detection, lookups, formatting, and UI state.
+- `js/parsers.js` identifies sources with deterministic URL or identifier
+  formats before generic detection runs.
 - `js/services.js` contains all external API requests.
 - `js/formatters.js` builds citations and BIB/RIS exports.
 - `js/ui.js` owns DOM access, events, status updates, and downloads.
@@ -29,6 +31,9 @@ build step.
 
 - DOI and existing-citation lookups use Crossref and DOI.org content
   negotiation.
+- arXiv abstract, PDF, HTML, format, and source URLs—as well as bare modern and
+  legacy arXiv identifiers—are parsed directly. Their canonical arXiv DOI is
+  used for citation metadata and downloads, so no title matching is needed.
 - ISBN lookup uses Crossref first, then Open Library for edition metadata.
 - Publisher URLs with embedded DOIs use the DOI directly. Other URLs use
   Microlink to read page metadata, then match the title in Crossref.

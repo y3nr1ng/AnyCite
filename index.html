@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Turn a DOI, ISBN, publisher URL, or existing reference into a formatted citation."
+      content="Turn a DOI, ISBN, arXiv identifier, publisher URL, or existing reference into a formatted citation."
     />
     <title>Any | Cite</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -33,7 +33,7 @@
               rows="7"
               autocomplete="off"
               spellcheck="false"
-              placeholder="Paste a DOI, ISBN, publisher URL, or an existing citation…"
+              placeholder="Paste a DOI, ISBN, arXiv ID, publisher URL, or an existing citation…"
             ></textarea>
           </div>
 
@@ -134,6 +134,7 @@
     </div>
 
     <script defer src="./js/config.js"></script>
+    <script defer src="./js/parsers.js"></script>
     <script defer src="./js/utils.js"></script>
     <script defer src="./js/services.js"></script>
     <script defer src="./js/formatters.js"></script>

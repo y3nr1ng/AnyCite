@@ -213,6 +213,12 @@ header p {
   background: #e7eff5 !important;
 }
 
+.source-heading[data-kind="arxiv"] {
+  border-color: #c55f5f !important;
+  color: #971b1b !important;
+  background: #f6e8e8 !important;
+}
+
 .source-heading[data-kind="url"] {
   border-color: #73a886 !important;
   color: #347148 !important;

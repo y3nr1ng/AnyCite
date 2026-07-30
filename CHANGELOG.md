@@ -2,6 +2,13 @@
 
 All notable changes to Any | Cite are documented here.
 
+## [Unreleased]
+
+### Added
+
+- Parse modern and legacy arXiv identifiers and known arXiv URL formats
+  directly, without probabilistic publisher-page or title matching.
+
 ## [1.1.0] - 2026-07-27
 
 ### Added
@@ -30,3 +37,4 @@ All notable changes to Any | Cite are documented here.
 
 [1.1.0]: https://github.com/y3nr1ng/AnyCite/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/y3nr1ng/AnyCite/releases/tag/v1.0.0
+[Unreleased]: https://github.com/y3nr1ng/AnyCite/compare/v1.1.0...HEAD
