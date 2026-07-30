@@ -20,6 +20,7 @@ const {
   findCrossrefByTitle,
   resolveJournalAbbreviation,
 } = window.CiteApp.services;
+const { parseKnownSource } = window.CiteApp.parsers;
 const { ui } = window.CiteApp;
 const {
   doiUrl,
@@ -81,7 +82,20 @@ class CitationApp {
   }
 
   async resolveInput(value) {
-    const doi = extractDoi(safeDecode(value));
+    const decodedValue = safeDecode(value);
+    const knownSource = parseKnownSource(decodedValue);
+    if (knownSource?.kind === "arxiv") {
+      ui.showSourceKind("arXiv", "arxiv");
+      await this.resolveDoi(
+        knownSource.doi,
+        `arXiv ${knownSource.id}`,
+        knownSource.url,
+        "ARXIV_NOT_FOUND",
+      );
+      return;
+    }
+
+    const doi = extractDoi(decodedValue);
     if (doi) {
       ui.showSourceKind("DOI", "doi");
       await this.resolveDoi(doi, "DOI detected");
@@ -113,7 +127,12 @@ class CitationApp {
     await this.resolveExistingCitation(value);
   }
 
-  async resolveDoi(doi, detectedAs, originalUrl = "") {
+  async resolveDoi(
+    doi,
+    detectedAs,
+    originalUrl = "",
+    notFoundCode = "DOI_NOT_FOUND",
+  ) {
     ui.setSourceMeta(detectedAs);
     const controller = this.beginRequest("Looking up DOI metadata…");
     const style = ui.styleValue();
@@ -139,7 +158,11 @@ class CitationApp {
         label: `${detectedAs} · ${ui.styleLabel()}`,
       });
     } catch (error) {
-      this.handleFailure(error, controller);
+      const resolvedError =
+        error.message === "DOI_NOT_FOUND"
+          ? new Error(notFoundCode)
+          : error;
+      this.handleFailure(resolvedError, controller);
     }
   }
 
@@ -413,6 +436,8 @@ class CitationApp {
     const messages = {
       DOI_NOT_FOUND:
         "No record was found for that DOI. Check the identifier and try again.",
+      ARXIV_NOT_FOUND:
+        "No arXiv record was found for that identifier. Check it and try again.",
       ISBN_NOT_FOUND: "No book record was found for that ISBN.",
       PAGE_UNAVAILABLE:
         "That page’s metadata could not be read. Try its DOI or paste the existing citation.",
